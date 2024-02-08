@@ -275,6 +275,11 @@ class ExportedProgram:
         return self._constants
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError(
+            "Unable to call ExportedProgram directly. "
+            "You should use `exported_program.module()` instead."
+        )
+
         import torch._export.error as error
 
         in_spec = self.call_spec.in_spec
