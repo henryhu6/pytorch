@@ -1203,11 +1203,21 @@ class DistributedTest:
             averager = hierarchicalSGD.HierarchicalModelAverager(
                 period_group_size_dict=period_group_size_dict, warmup_steps=warmup_steps
             )
+            self.assertEqual(dist.get_pg_count(), len(period_group_size_dict))
+
             subgroup1 = averager.period_process_group_dict[subgroup_avg_period1]
             subgroup2 = averager.period_process_group_dict[subgroup_avg_period2]
+            subgroup1_name = dist._get_process_group_name(subgroup1)
+            subgroup2_name = dist._get_process_group_name(subgroup2)
+            real_group_ranks_res1 = []
+            real_group_ranks_res2 = []
+            pg_configs = dist.get_pg_config()
+            for pg_config in pg_configs:
+                if pg_configs['pg_name'] == subgroup1_name:
+                    real_group_ranks_res1 = pg_configs['ranks']
+                elif pg_configs['pg_name'] == subgroup2_name:
+                    real_group_ranks_res2 = pg_configs['ranks']
 
-            real_group_ranks_res1 = dist.get_process_group_ranks(subgroup1)
-            real_group_ranks_res2 = dist.get_process_group_ranks(subgroup2)
             expect_group_ranks_res1 = (
                 rank // subgroup_size1 * subgroup_size1
                 + np.array(list(range(subgroup_size1)))
