@@ -251,7 +251,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
 
         # Case 2: a given child_mesh_dim_names in not in the parent mesh's mesh_dim_names
         child_mesh_dim_names = "PP"
-        with self.assertRaisesRegex(RuntimeError, error_msg):
+        with self.assertRaisesRegex(ValueError, error_msg):
             mesh_dim_names = ("DP", "TP")
             mesh = init_device_mesh(
                 self.device_type, (2, 4), mesh_dim_names=mesh_dim_names
@@ -260,7 +260,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
 
         # Case 2
         child_mesh_dim_names = ["PP", "CP"]
-        with self.assertRaisesRegex(RuntimeError, error_msg):
+        with self.assertRaisesRegex(ValueError, error_msg):
             mesh_dim_names = ("DP", "TP")
             mesh = init_device_mesh(
                 self.device_type, (2, 4), mesh_dim_names=mesh_dim_names
@@ -269,7 +269,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
 
         # Case 3: a given child_mesh_dim_name is not a contiguous subset of the parent mesh's mesh_dim_names.
         child_mesh_dim_names = ("TP", "DP")
-        with self.assertRaisesRegex(RuntimeError, error_msg):
+        with self.assertRaisesRegex(ValueError, error_msg):
             mesh_dim_names = ("DP", "TP")
             mesh = init_device_mesh(
                 self.device_type, (2, 4), mesh_dim_names=mesh_dim_names
@@ -278,7 +278,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
 
         # Case 3
         child_mesh_dim_names = ("PP", "TP")
-        with self.assertRaisesRegex(RuntimeError, error_msg):
+        with self.assertRaisesRegex(ValueError, error_msg):
             mesh_dim_names = ("PP", "DP", "TP")
             mesh = init_device_mesh(
                 self.device_type, (2, 2, 2), mesh_dim_names=mesh_dim_names
@@ -316,7 +316,7 @@ class TestDeviceMeshGetItem(DTensorTestBase):
         dp_mesh = mesh["dp"]
         self.assertEqual(dp_mesh, mesh)
 
-        with self.assertRaisesRegex(RuntimeError, "Invalid mesh_dim_name"):
+        with self.assertRaisesRegex(ValueError, "Invalid mesh_dim_name"):
             dp_mesh = mesh["dim0"]
 
     @with_comms
@@ -341,10 +341,15 @@ class TestDeviceMeshGetItem(DTensorTestBase):
             mesh_3d["Replicate"].mesh.tolist(), replicate_group[replicate_group_idx]
         )
 
-        hsdp_mesh = mesh_3d[["Replicate", "Shard"]]
+        # We support both UX for nD slicing.
+        # mesh_3d[["Replicate", "Shard"]] or mesh_3d["Replicate", "Shard"]
+        hsdp_mesh_1 = mesh_3d[["Replicate", "Shard"]]
+        hsdp_mesh_2 = mesh_3d["Replicate", "Shard"]
         hsdp_group = [[[0, 2], [4, 6]], [[1, 3], [5, 7]]]
         hsdp_group_idx = self.rank % 2
-        self.assertEqual(hsdp_mesh.mesh.tolist(), hsdp_group[hsdp_group_idx])
+        self.assertEqual(hsdp_mesh_1.mesh.tolist(), hsdp_group[hsdp_group_idx])
+        self.assertEqual(hsdp_mesh_2.mesh.tolist(), hsdp_group[hsdp_group_idx])
+        self.assertEqual(hsdp_mesh_1, hsdp_mesh_2)
 
 
 class TestMeshEnv(DTensorTestBase):
