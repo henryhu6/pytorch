@@ -82,7 +82,7 @@ def log_compilation_event(metrics):
     log.info("%s", metrics)
 
 
-def print_graph(graph, msg: str):
+def print_graph(graph):
     pass
 
 
