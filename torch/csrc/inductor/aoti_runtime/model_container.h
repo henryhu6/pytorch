@@ -138,6 +138,13 @@ class AOTInductorModelContainer {
     return models_[0]->constant_original_fqn(idx);
   }
 
+  bool constant_from_folded(size_t idx) const {
+    if (this->num_models() == 0) {
+      throw std::runtime_error("No available models in container!");
+    }
+    return models_[0]->constant_from_folded(idx);
+  }
+
   int32_t constant_dtype(size_t idx) const {
     if (this->num_models() == 0) {
       throw std::runtime_error("No available models in container!");
@@ -266,11 +273,10 @@ class AOTInductorModelContainer {
       AtenTensorHandle tensor_handle;
       int64_t* stride;
       int64_t offset;
-      int device_idx = -1;
+      int device_idx = models_[0]->get_device_idx();
       AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_get_strides(it->second, &stride));
       AOTI_TORCH_ERROR_CODE_CHECK(
           aoti_torch_get_storage_offset(it->second, &offset));
-      AOTI_RUNTIME_DEVICE_CHECK(cudaGetDevice(&device_idx));
       AOTI_TORCH_ERROR_CODE_CHECK(aoti_torch_create_tensor_from_blob(
           internal_constants_ptr,
           models_[0]->constant_ndim(idx),
