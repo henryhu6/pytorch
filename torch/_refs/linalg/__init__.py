@@ -21,12 +21,22 @@ from torch._prims_common import (
 )
 from torch._prims_common.wrappers import (
     _maybe_convert_to_dtype,
+    _safe_copy_out,
     elementwise_type_promotion_wrapper,
     out_wrapper,
 )
 
 
-__all__ = ["diagonal", "matrix_norm", "norm", "svd", "svdvals", "vector_norm", "vecdot"]
+__all__ = [
+    "diagonal",
+    "matrix_norm",
+    "norm",
+    "svd",
+    "svdvals",
+    "vector_norm",
+    "vecdot",
+    "cross",
+]
 
 
 def _check_norm_dtype(dtype: Optional[torch.dtype], x_dtype: torch.dtype, fn_name: str):
@@ -55,6 +65,17 @@ def _check_norm_dtype(dtype: Optional[torch.dtype], x_dtype: torch.dtype, fn_nam
 
 # Utilities should come BEFORE this import
 from torch._decomp import register_decomposition
+
+
+@register_decomposition(torch._ops.ops.aten.linalg_cross)
+@out_wrapper()
+def cross(a: Tensor, b: Tensor, dim: int = -1):
+    a, b = torch.broadcast_tensors(a, b)
+    dim = utils.canonicalize_dim(a.ndim, dim)
+    idx = torch.arange(3, device=a.device)
+    return a.index_select(dim, (idx + 1) % 3) * b.index_select(
+        dim, (idx + 2) % 3
+    ) - a.index_select(dim, (idx + 2) % 3) * b.index_select(dim, (idx + 1) % 3)
 
 
 def diagonal(
